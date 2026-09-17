@@ -692,10 +692,19 @@
   // ── Verificações pendentes pós-redirecionamento ──────────
   async function checkPendingTasks() {
     if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
-    chrome.storage.local.get(['fb_pending_search', 'fb_pending_load_joined', 'fb_pending_member_scraper'], async (res) => {
+    chrome.storage.local.get(['fb_pending_search', 'fb_pending_load_joined', 'fb_pending_member_scraper', 'fb_group_queue'], async (res) => {
       const now = Date.now();
 
-      // 1. Busca de grupos pendente
+      // 1. Fila de postagem / entrada em grupos pendente (prioridade máxima)
+      if (res?.fb_group_queue?.status === 'running' && now - res.fb_group_queue.updatedAt < 7200000) {
+        const q = res.fb_group_queue;
+        await log(`🔄 Retomando fila de grupos no Facebook [${q.currentIndex + 1}/${q.total}]...`, 'info');
+        await BE().esperar(4000);
+        await runGroupQueue();
+        return;
+      }
+
+      // 2. Busca de grupos pendente
       if (res?.fb_pending_search?.keyword && now - res.fb_pending_search.timestamp < 120000) {
         if (window.location.href.includes('/groups/search/groups')) {
           const kw = res.fb_pending_search.keyword;
@@ -706,7 +715,7 @@
         }
       }
 
-      // 2. Carregar grupos participados pendente
+      // 3. Carregar grupos participados pendente
       if (res?.fb_pending_load_joined && now - res.fb_pending_load_joined.timestamp < 120000) {
         if (window.location.href.includes('/groups/joins')) {
           chrome.storage.local.remove('fb_pending_load_joined');
@@ -716,7 +725,7 @@
         }
       }
 
-      // 3. Extrator de membros pendente
+      // 4. Extrator de membros pendente
       if (res?.fb_pending_member_scraper?.groupUrl && now - res.fb_pending_member_scraper.timestamp < 120000) {
         if (window.location.href.includes('/members')) {
           const p = res.fb_pending_member_scraper;
@@ -911,20 +920,212 @@
   }
 
   // ════════════════════════════════════════════════════════
-  // 📢 GROUP POST MULTI-GRUPOS (Com Modos: Buscar, Entrar, Entrar e Postar)
+  // 📢 PROCESSADOR DA FILA DE GRUPOS (À PROVA DE RELOAD/NAVEGAÇÃO)
   // ════════════════════════════════════════════════════════
-  async function autoGroupPost(customOptions) {
-    await loadSettings();
+  async function runGroupQueue() {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
+    const res = await new Promise(r => chrome.storage.local.get(['fb_group_queue'], r));
+    const queue = res?.fb_group_queue;
+    if (!queue || queue.status !== 'running' || !queue.targetGroups?.length) return;
+
+    if (queue.currentIndex >= queue.total) {
+      await chrome.storage.local.remove('fb_group_queue');
+      running.post = false;
+      updateStatus('post', 'stopped');
+      await log(`🎉 Todos os ${queue.total} grupos foram processados! (${queue.countSuccess || 0} ações bem-sucedidas)`, 'success');
+      return;
+    }
+
     const be = BE();
     be.protegerFingerprint();
     running.post = true;
     updateStatus('post', 'active');
-    await log('▶ Operação em Grupos iniciada', 'info');
-    sessionIds.post = await STO().startSession(PLATFORM, 'post');
 
+    const groupUrl = queue.targetGroups[queue.currentIndex];
+    const total = queue.total;
+    const currentIdx = queue.currentIndex;
+
+    // 1. Verifica se já está na página do grupo
+    const cleanGroupPath = groupUrl.replace('https://www.facebook.com', '').split('?')[0].replace(/\/$/, '');
+    const currentPath = window.location.pathname.replace(/\/$/, '');
+
+    if (!currentPath.includes(cleanGroupPath)) {
+      await log(`[${currentIdx + 1}/${total}] Navegando para o grupo: ${groupUrl}...`, 'info');
+      queue.updatedAt = Date.now();
+      await new Promise(r => chrome.storage.local.set({ fb_group_queue: queue }, r));
+      window.location.href = groupUrl;
+      return; // O navegador descarrega a página e checkPendingTasks continuará quando carregar!
+    }
+
+    // 2. Já está no grupo! Aguarda estabilizar a página
+    await log(`[${currentIdx + 1}/${total}] Página do grupo carregada. Aguardando elementos...`, 'info');
+    await be.esperar(be.delayNormal(4000, 0.4));
+    startCaptchaGuard();
+
+    let actionSuccess = false;
+
+    // ── MODO 1: APENAS ENTRAR NO GRUPO ─────────────────────
+    if (queue.actionMode === 'join_only') {
+      const joinResult = await joinFacebookGroup(groupUrl);
+      if (joinResult.ok) {
+        actionSuccess = true;
+        queue.countSuccess = (queue.countSuccess || 0) + 1;
+        await STO().incrementCounter(PLATFORM, 'post');
+      }
+    } else {
+      // ── MODO 2: ENTRAR E POSTAR OU APENAS POSTAR ───────────
+      let shouldPost = true;
+      if (queue.actionMode === 'join_and_post') {
+        const joinRes = await joinFacebookGroup(groupUrl);
+        if (joinRes.status === 'pending') {
+          await log(`[${currentIdx + 1}/${total}] Entrada enviada ao admin do grupo (pendente de aprovação). Post será aprovado depois. Pulando para o próximo...`, 'warn');
+          shouldPost = false;
+        } else {
+          await be.esperar(2500);
+        }
+      }
+
+      if (shouldPost) {
+        let postTrigger = SEL().find(PLATFORM, 'groupPostTrigger') || SEL().find(PLATFORM, 'postBox');
+        if (!postTrigger) {
+          const buttons = Array.from(document.querySelectorAll('div[role="button"], span, div[tabindex="0"]'));
+          postTrigger = buttons.find(b => {
+            const t = (b.textContent || '').toLowerCase();
+            return (t.includes('escreva algo') || t.includes('no que você está pensando') || t.includes('write something') || t.includes('criar uma publicação'));
+          });
+        }
+
+        if (!postTrigger) {
+          const hasJoinBtn = SEL().find(PLATFORM, 'joinGroupBtn');
+          if (hasJoinBtn) {
+            await log(`[${currentIdx + 1}/${total}] Você ainda não participa deste grupo. Dica: use o modo 'Entrar e Postar'. Pulando...`, 'warn');
+          } else {
+            await log(`[${currentIdx + 1}/${total}] Caixa de publicação não encontrada. Pulando...`, 'warn');
+          }
+        } else {
+          await be.rolarAteElemento(postTrigger);
+          await be.clicar(postTrigger);
+          await be.esperar(be.delayNormal(2500, 0.4));
+
+          const postInput = SEL().find(PLATFORM, 'groupPostInput') ||
+            document.querySelector('div[role="dialog"] div[contenteditable="true"][role="textbox"]') ||
+            document.querySelector('div[contenteditable="true"][role="textbox"]');
+
+          if (!postInput) {
+            await log(`[${currentIdx + 1}/${total}] Campo de digitação não abriu. Pulando...`, 'warn');
+          } else {
+            let finalPost = be.personalizar(queue.postTemplate || '', {});
+            finalPost = finalPost.replace(/\{([^{}]+)\}/g, (match, contents) => {
+              const parts = contents.split('|');
+              return parts[Math.floor(Math.random() * parts.length)];
+            });
+
+            if (queue.postLink && !finalPost.includes(queue.postLink)) {
+              finalPost += `\n\n${queue.postLink}`;
+            }
+
+            await typeInContentEditable(postInput, finalPost);
+            await be.esperar(be.delayNormal(2000, 0.4));
+
+            if (queue.postLink) await be.esperar(3000);
+
+            // Anexo de Fotos e Vídeos
+            const mediaList = queue.mediaList || [];
+            if (mediaList && mediaList.length > 0) {
+              await log(`[${currentIdx + 1}/${total}] Anexando ${mediaList.length} arquivo(s) de foto/vídeo...`, 'info');
+              try {
+                let fileInput = SEL().find(PLATFORM, 'postMediaInput') ||
+                  document.querySelector('div[role="dialog"] input[type="file"][accept*="image"], div[role="dialog"] input[type="file"]');
+
+                if (!fileInput) {
+                  const mediaBtn = SEL().find(PLATFORM, 'postMediaBtn') ||
+                    Array.from(document.querySelectorAll('div[role="dialog"] [aria-label*="Foto"], div[role="dialog"] [aria-label*="Photo"], div[role="dialog"] [aria-label*="Mídia"], div[role="dialog"] [aria-label*="Vídeo"]')).find(b => b.offsetWidth > 0);
+                  if (mediaBtn) {
+                    await be.clicar(mediaBtn);
+                    await be.esperar(1500);
+                    fileInput = document.querySelector('div[role="dialog"] input[type="file"][accept*="image"], div[role="dialog"] input[type="file"]');
+                  }
+                }
+
+                if (fileInput) {
+                  const dt = new DataTransfer();
+                  for (const item of mediaList) {
+                    if (item.dataUrl) {
+                      const res = await fetch(item.dataUrl);
+                      const blob = await res.blob();
+                      const file = new File([blob], item.name || 'midia.jpg', { type: item.type || blob.type || 'image/jpeg' });
+                      dt.items.add(file);
+                    }
+                  }
+                  if (dt.files.length > 0) {
+                    fileInput.files = dt.files;
+                    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    await log(`[${currentIdx + 1}/${total}] Mídia enviada. Aguardando processamento do Facebook...`, 'info');
+                    await be.esperar(4500);
+                  }
+                }
+              } catch (mediaErr) {
+                await log(`Erro ao anexar mídia: ${mediaErr.message}`, 'warn');
+              }
+            }
+
+            const publishBtn = SEL().find(PLATFORM, 'publishBtn') ||
+              Array.from(document.querySelectorAll('div[role="dialog"] div[role="button"], div[role="dialog"] button, div[role="button"], button')).find(b => {
+                const t = (b.textContent || '').trim().toLowerCase();
+                const aria = (b.getAttribute('aria-label') || '').toLowerCase();
+                return (t === 'publicar' || t === 'postar' || t === 'post' || aria === 'publicar' || aria === 'post') && !b.getAttribute('aria-disabled');
+              });
+
+            if (publishBtn) {
+              await be.clicar(publishBtn);
+              actionSuccess = true;
+              queue.countSuccess = (queue.countSuccess || 0) + 1;
+              await STO().incrementCounter(PLATFORM, 'post');
+              await log(`📢 Post publicado com sucesso! [${queue.countSuccess}/${total}] no grupo: ${groupUrl}`, 'success');
+              await be.esperar(3500);
+            } else {
+              await log(`[${currentIdx + 1}/${total}] Botão de Publicar não encontrado ou desabilitado.`, 'warn');
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Incrementa para o próximo grupo
+    queue.currentIndex++;
+    queue.updatedAt = Date.now();
+
+    if (queue.currentIndex < queue.total) {
+      await new Promise(r => chrome.storage.local.set({ fb_group_queue: queue }, r));
+
+      const delayMin = queue.groupDelayMin || 60;
+      const delayMax = queue.groupDelayMax || 120;
+      const waitSec = Math.floor(delayMin + Math.random() * (delayMax - delayMin));
+      await log(`⏳ Aguardando ${waitSec}s antes do próximo grupo [${queue.currentIndex + 1}/${total}] (proteção anti-bloqueio)...`, 'info');
+      await be.esperar(waitSec * 1000);
+
+      // Re-checa se ainda está ativo
+      const checkRes = await new Promise(r => chrome.storage.local.get(['fb_group_queue'], r));
+      if (checkRes?.fb_group_queue?.status === 'running') {
+        const nextGroupUrl = queue.targetGroups[queue.currentIndex];
+        await log(`[${queue.currentIndex + 1}/${total}] Indo para o próximo grupo: ${nextGroupUrl}...`, 'info');
+        window.location.href = nextGroupUrl;
+      }
+    } else {
+      await chrome.storage.local.remove('fb_group_queue');
+      running.post = false;
+      updateStatus('post', 'stopped');
+      await log(`🎉 Todos os ${queue.total} grupos foram processados! (${queue.countSuccess || 0} ações bem-sucedidas)`, 'success');
+    }
+  }
+
+  // ════════════════════════════════════════════════════════
+  // 📢 AUTO GROUP POST DISPATCHER (Cria a fila e dispara)
+  // ════════════════════════════════════════════════════════
+  async function autoGroupPost(customOptions) {
+    await loadSettings();
     const opts = customOptions || {};
-    const actionMode = opts.actionMode || 'post_only'; // 'join_only', 'join_and_post', 'post_only'
-
     let targetGroups = opts.targetGroups || settings.targetGroups || [];
     if (typeof targetGroups === 'string') {
       targetGroups = targetGroups.split('\n').map(u => u.trim()).filter(Boolean);
@@ -934,187 +1135,28 @@
     }
 
     if (!targetGroups || targetGroups.length === 0) {
-      await log('Nenhum grupo selecionado. Busque grupos ou selecione na lista.', 'error');
+      await log('Nenhum grupo selecionado para postagem.', 'error');
       running.post = false; updateStatus('post', 'stopped'); return;
     }
 
-    const template = opts.postTemplate || settings.postTemplate || 'Olá a todos! Compartilhando uma grande novidade com vocês 😊';
-    const link = (opts.postLink || settings.postLink || '').trim();
-    const delayMin = parseInt(opts.groupDelayMin || settings.groupDelayMin || 60, 10);
-    const delayMax = parseInt(opts.groupDelayMax || settings.groupDelayMax || 120, 10);
+    const queue = {
+      status: 'running',
+      currentIndex: 0,
+      total: targetGroups.length,
+      targetGroups: targetGroups,
+      actionMode: opts.actionMode || 'post_only',
+      postTemplate: opts.postTemplate || settings.postTemplate || 'Olá a todos! Compartilhando uma grande novidade com vocês 😊',
+      postLink: (opts.postLink || settings.postLink || '').trim(),
+      mediaList: opts.mediaList || settings.postMediaList || [],
+      groupDelayMin: parseInt(opts.groupDelayMin || settings.groupDelayMin || 60, 10),
+      groupDelayMax: parseInt(opts.groupDelayMax || settings.groupDelayMax || 120, 10),
+      countSuccess: 0,
+      updatedAt: Date.now()
+    };
 
-    startCaptchaGuard();
-    let countSuccess = 0;
-    const total = targetGroups.length;
-
-    await log(`⚙️ Modo de Operação selecionado: ${actionMode.toUpperCase()}`, 'info');
-
-    for (let i = 0; i < total; i++) {
-      if (!running.post) break;
-      const groupUrl = targetGroups[i];
-      await log(`[${i + 1}/${total}] Processando grupo: ${groupUrl}...`, 'info');
-
-      // ── MODO 1: APENAS ENTRAR NO GRUPO ─────────────────────
-      if (actionMode === 'join_only') {
-        const joinResult = await joinFacebookGroup(groupUrl);
-        if (joinResult.ok) {
-          countSuccess++;
-          await STO().incrementCounter(PLATFORM, 'post');
-        }
-        if (i < total - 1 && running.post) {
-          const waitSec = Math.floor(delayMin + Math.random() * (delayMax - delayMin));
-          await log(`⏳ Aguardando ${waitSec}s antes do próximo grupo...`, 'info');
-          await be.esperar(waitSec * 1000);
-        }
-        continue;
-      }
-
-      // ── MODO 2: ENTRAR E POSTAR OU APENAS POSTAR ───────────
-      const cleanGroupPath = groupUrl.replace('https://www.facebook.com', '').split('?')[0];
-      if (!window.location.pathname.includes(cleanGroupPath.replace(/\/$/, ''))) {
-        window.location.href = groupUrl;
-        await be.esperar(be.delayNormal(5000, 0.4));
-      }
-
-      await be.esperar(be.delayNormal(3500, 0.4));
-
-      // Se for modo "join_and_post", verifica se precisa entrar primeiro
-      if (actionMode === 'join_and_post') {
-        const joinRes = await joinFacebookGroup(groupUrl);
-        if (joinRes.status === 'pending') {
-          await log(`[${i + 1}/${total}] Entrada pendente de aprovação pelo admin. O post será feito quando aprovado. Pulando...`, 'warn');
-          if (i < total - 1 && running.post) {
-            const waitSec = Math.floor(delayMin + Math.random() * (delayMax - delayMin));
-            await be.esperar(waitSec * 1000);
-          }
-          continue;
-        }
-        await be.esperar(2500);
-      }
-
-      // Localiza a caixa de postagem
-      let postTrigger = SEL().find(PLATFORM, 'groupPostTrigger') || SEL().find(PLATFORM, 'postBox');
-      if (!postTrigger) {
-        const buttons = Array.from(document.querySelectorAll('div[role="button"], span, div[tabindex="0"]'));
-        postTrigger = buttons.find(b => {
-          const t = (b.textContent || '').toLowerCase();
-          return (t.includes('escreva algo') || t.includes('no que você está pensando') || t.includes('write something') || t.includes('criar uma publicação'));
-        });
-      }
-
-      if (!postTrigger) {
-        // Se não achou e não é membro, dá aviso instrutivo
-        const hasJoinBtn = SEL().find(PLATFORM, 'joinGroupBtn');
-        if (hasJoinBtn) {
-          await log(`[${i + 1}/${total}] Você ainda não é membro deste grupo! Dica: utilize a opção "Entrar e Postar" ou "Apenas Entrar". Pulando...`, 'warn');
-        } else {
-          await log(`[${i + 1}/${total}] Caixa de post não encontrada no grupo. Pulando...`, 'warn');
-        }
-        continue;
-      }
-
-      await be.rolarAteElemento(postTrigger);
-      await be.clicar(postTrigger);
-      await be.esperar(be.delayNormal(2000, 0.4));
-
-      const postInput = SEL().find(PLATFORM, 'groupPostInput') ||
-        document.querySelector('div[role="dialog"] div[contenteditable="true"][role="textbox"]') ||
-        document.querySelector('div[contenteditable="true"][role="textbox"]');
-
-      if (!postInput) {
-        await log(`[${i + 1}/${total}] Campo de digitação não abriu. Pulando...`, 'warn');
-        continue;
-      }
-
-      let finalPost = be.personalizar(template, {});
-      finalPost = finalPost.replace(/\{([^{}]+)\}/g, (match, contents) => {
-        const parts = contents.split('|');
-        return parts[Math.floor(Math.random() * parts.length)];
-      });
-
-      if (link && !finalPost.includes(link)) {
-        finalPost += `\n\n${link}`;
-      }
-
-      await typeInContentEditable(postInput, finalPost);
-      await be.esperar(be.delayNormal(2000, 0.4));
-
-      if (link) {
-        await be.esperar(3000);
-      }
-
-      // Anexar Fotos / Vídeos se houver
-      const mediaList = opts.mediaList || settings.postMediaList || [];
-      if (mediaList && mediaList.length > 0) {
-        await log(`[${i + 1}/${total}] Anexando ${mediaList.length} arquivo(s) de foto/vídeo...`, 'info');
-        try {
-          let fileInput = SEL().find(PLATFORM, 'postMediaInput') ||
-            document.querySelector('div[role="dialog"] input[type="file"][accept*="image"], div[role="dialog"] input[type="file"]');
-
-          if (!fileInput) {
-            const mediaBtn = SEL().find(PLATFORM, 'postMediaBtn') ||
-              Array.from(document.querySelectorAll('div[role="dialog"] [aria-label*="Foto"], div[role="dialog"] [aria-label*="Photo"], div[role="dialog"] [aria-label*="Mídia"], div[role="dialog"] [aria-label*="Vídeo"]')).find(b => b.offsetWidth > 0);
-
-            if (mediaBtn) {
-              await be.clicar(mediaBtn);
-              await be.esperar(1500);
-              fileInput = document.querySelector('div[role="dialog"] input[type="file"][accept*="image"], div[role="dialog"] input[type="file"]');
-            }
-          }
-
-          if (fileInput) {
-            const dt = new DataTransfer();
-            for (const item of mediaList) {
-              if (item.dataUrl) {
-                const res = await fetch(item.dataUrl);
-                const blob = await res.blob();
-                const file = new File([blob], item.name || 'midia.jpg', { type: item.type || blob.type || 'image/jpeg' });
-                dt.items.add(file);
-              }
-            }
-
-            if (dt.files.length > 0) {
-              fileInput.files = dt.files;
-              fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-              fileInput.dispatchEvent(new Event('input', { bubbles: true }));
-              await log(`[${i + 1}/${total}] Mídia enviada. Aguardando processamento do Facebook...`, 'info');
-              await be.esperar(4500);
-            }
-          } else {
-            await log(`[${i + 1}/${total}] Botão de foto/vídeo não localizado no diálogo. Continuando...`, 'warn');
-          }
-        } catch (mediaErr) {
-          await log(`Erro ao anexar mídia: ${mediaErr.message}`, 'warn');
-        }
-      }
-
-      const publishBtn = SEL().find(PLATFORM, 'publishBtn') ||
-        Array.from(document.querySelectorAll('div[role="dialog"] div[role="button"], div[role="dialog"] button, div[role="button"], button')).find(b => {
-          const t = (b.textContent || '').trim().toLowerCase();
-          const aria = (b.getAttribute('aria-label') || '').toLowerCase();
-          return (t === 'publicar' || t === 'postar' || t === 'post' || aria === 'publicar' || aria === 'post') && !b.getAttribute('aria-disabled');
-        });
-
-      if (publishBtn) {
-        await be.clicar(publishBtn);
-        countSuccess++;
-        await STO().incrementCounter(PLATFORM, 'post');
-        await log(`📢 Post publicado com sucesso! [${countSuccess}/${total}] no grupo: ${groupUrl}`, 'success');
-      } else {
-        await log(`[${i + 1}/${total}] Botão de Publicar não encontrado ou desabilitado.`, 'warn');
-      }
-
-      if (i < total - 1 && running.post) {
-        const waitSec = Math.floor(delayMin + Math.random() * (delayMax - delayMin));
-        await log(`⏳ Aguardando ${waitSec}s antes do próximo grupo (proteção anti-bloqueio)...`, 'info');
-        await be.esperar(waitSec * 1000);
-      }
-    }
-
-    running.post = false; updateStatus('post', 'stopped');
-    await STO().endSession(sessionIds.post, posted);
-    CAP().stop();
-    await log(`⏹ Disparo em Grupos encerrado — ${posted} postagens realizadas!`, 'info');
+    await new Promise(r => chrome.storage.local.set({ fb_group_queue: queue }, r));
+    await log(`⚙️ Fila criada com ${queue.total} grupos no modo ${queue.actionMode.toUpperCase()}. Iniciando...`, 'info');
+    await runGroupQueue();
   }
 
   // ════════════════════════════════════════════════════════
@@ -1210,10 +1252,26 @@
   // ════════════════════════════════════════════════════════
   // STOP / PAUSE / RESUME
   // ════════════════════════════════════════════════════════
-  function stopAction(action) { running[action] = false; updateStatus(action,'stopped'); log(`⏹ ${action} parado`,'warn'); }
-  function stopAll() { Object.keys(running).forEach(k => { running[k] = false; }); BE().resume(); CAP().stop(); updateStatus('all','stopped'); log('⏹ Tudo parado','warn'); }
-  function pauseAll() { BE().pause(); updateStatus('all','processing'); log('⏸ Pausado','warn'); }
-  function resumeAll() { BE().resume(); updateStatus('all','active'); log('▶ Retomado','info'); }
+  function stopAction(action) {
+    running[action] = false;
+    updateStatus(action, 'stopped');
+    if (action === 'post' && typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.remove('fb_group_queue');
+    }
+    log(`⏹ ${action} parado`, 'warn');
+  }
+  function stopAll() {
+    Object.keys(running).forEach(k => { running[k] = false; });
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.remove('fb_group_queue');
+    }
+    BE().resume();
+    CAP().stop();
+    updateStatus('all', 'stopped');
+    log('⏹ Tudo parado', 'warn');
+  }
+  function pauseAll() { BE().pause(); updateStatus('all', 'processing'); log('⏸ Pausado', 'warn'); }
+  function resumeAll() { BE().resume(); updateStatus('all', 'active'); log('▶ Retomado', 'info'); }
 
   // ════════════════════════════════════════════════════════
   // MESSAGE LISTENER

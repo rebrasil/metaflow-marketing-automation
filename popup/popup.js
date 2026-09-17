@@ -1187,7 +1187,12 @@ function renderMediaPreviews() {
   });
 }
 
+let isStartingGroupPost = false;
 async function startMultiGroupPost() {
+  if (isStartingGroupPost) return;
+  isStartingGroupPost = true;
+  setTimeout(() => { isStartingGroupPost = false; }, 3000);
+
   const actionMode = el('fb-group-action-mode')?.value || 'join_and_post';
 
   // Se o usuário escolheu "Apenas Buscar"
