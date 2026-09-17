@@ -1,0 +1,108 @@
+{
+  "manifest_version": 3,
+  "name": "MetaFlow — Marketing Automation",
+  "version": "2.0.0",
+  "description": "Automação inteligente com comportamento humano realista para Instagram, Facebook e WhatsApp Web. v2.0",
+  "author": "MetaFlow",
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "MetaFlow — Marketing Automation"
+  },
+
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs",
+    "alarms",
+    "downloads",
+    "notifications"
+  ],
+
+  "host_permissions": [
+    "https://*.instagram.com/*",
+    "https://instagram.com/*",
+    "https://*.facebook.com/*",
+    "https://facebook.com/*",
+    "https://web.whatsapp.com/*",
+    "https://api.groq.com/*"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.instagram.com/*",
+        "https://instagram.com/*"
+      ],
+      "js": [
+        "lib/storage.js",
+        "lib/selectors.js",
+        "lib/captcha-detector.js",
+        "lib/scheduler.js",
+        "lib/ai-engine.js",
+        "content/behavior-engine.js",
+        "content/instagram.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.facebook.com/*",
+        "https://facebook.com/*",
+        "https://web.facebook.com/*"
+      ],
+      "js": [
+        "lib/storage.js",
+        "lib/selectors.js",
+        "lib/captcha-detector.js",
+        "lib/scheduler.js",
+        "lib/ai-engine.js",
+        "content/behavior-engine.js",
+        "content/facebook.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ],
+      "js": [
+        "lib/storage.js",
+        "lib/selectors.js",
+        "lib/captcha-detector.js",
+        "lib/scheduler.js",
+        "lib/ai-engine.js",
+        "content/behavior-engine.js",
+        "content/whatsapp.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

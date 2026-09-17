@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MetaFlow — Marketing Automation</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ CABEÇALHO -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">M</div>
+    <div class="header-title">
+      <span class="header-name">MetaFlow</span>
+      <span class="header-sub">Marketing Automation</span>
+    </div>
+    <span class="header-version">v2.5 IA</span>
+  </div>
+  <div class="header-actions">
+    <button class="icon-btn" id="btn-detach-window" title="📌 Destacar Janela Flutuante (Fixar na tela e arrastar livremente)" aria-label="Destacar Janela Flutuante">📌</button>
+    <button class="icon-btn" id="btn-open-settings" title="Configurações Gerais">⚙️</button>
+    <button class="icon-btn" id="btn-stop-all-global" title="Parar tudo imediatamente">🛑</button>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════ NAVEGAÇÃO DE ABAS -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="instagram" id="tab-instagram">
+    <span class="tab-icon">📸</span><span>Instagram</span><span class="tab-dot" id="dot-instagram"></span>
+  </button>
+  <button class="tab-btn" data-tab="facebook" id="tab-facebook">
+    <span class="tab-icon">📘</span><span>Facebook</span><span class="tab-dot" id="dot-facebook"></span>
+  </button>
+  <button class="tab-btn" data-tab="whatsapp" id="tab-whatsapp">
+    <span class="tab-icon">💬</span><span>WhatsApp</span><span class="tab-dot" id="dot-whatsapp"></span>
+  </button>
+  <button class="tab-btn" data-tab="dashboard" id="tab-dashboard">
+    <span class="tab-icon">📊</span><span>Dashboard</span><span class="tab-dot"></span>
+  </button>
+  <button class="tab-btn" data-tab="manual" id="tab-manual">
+    <span class="tab-icon">📖</span><span>Manual</span>
+  </button>
+</nav>
+
+<!-- ════════════════════════════════════════ CONTEÚDO PRINCIPAL -->
+<main class="main">
+
+<!-- ─────────────────────────────────────── 📸 INSTAGRAM -->
+<section class="tab-panel active" id="panel-instagram">
+
+  <!-- Alerta de Bloqueio/Captcha -->
+  <div class="captcha-alert" id="ig-captcha-alert">
+    <span class="captcha-alert-icon">🔒</span>
+    <div class="captcha-alert-text">
+      <strong>Aviso de Verificação Detectado!</strong>
+      Resolva o desafio no Instagram e reinicie as ações.
+    </div>
+  </div>
+
+  <!-- Barra de Conexão -->
+  <div class="status-banner">
+    <div class="status-left">
+      <div class="status-indicator" id="ig-status-dot"></div>
+      <div>
+        <div class="status-text" id="ig-status-text">Inativo</div>
+        <div class="status-sub" id="ig-status-sub">Abra o Instagram para começar</div>
+      </div>
+    </div>
+    <div class="chip" id="ig-tab-chip">Tab: —</div>
+  </div>
+
+  <!-- Card Groq IA Integrado -->
+  <div class="ai-card">
+    <div class="ai-card-header">
+      <div class="ai-badge-wrap">
+        <span class="ai-chip">⚡ Groq IA</span>
+        <span class="ai-title">Comentários e DMs com IA Contextual</span>
+      </div>
+      <label class="toggle" for="ig-use-ai">
+        <input type="checkbox" id="ig-use-ai" title="Ativar geração de comentários com Groq IA" aria-label="Ativar geração de comentários com Groq IA" checked />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="ai-key-row">
+      <input type="password" class="input-field" id="groq-api-key-ig" placeholder="Chave Groq (gsk_...)" title="Chave de API da Groq" aria-label="Chave de API da Groq" />
+      <button class="btn-test-ai" id="btn-test-groq-ig" title="Testar chave da Groq">Testar</button>
+    </div>
+    <div class="ai-model-row">
+      <label class="input-label" for="groq-model-ig">Modelo:</label>
+      <select class="input-field ai-model-select" id="groq-model-ig" title="Modelo da IA Groq" aria-label="Modelo da IA Groq">
+        <option value="llama-3.1-8b-instant" selected>⚡ Llama 3.1 8B Instant (Recomendado / Livre)</option>
+        <option value="llama-3.3-70b-versatile">🧠 Llama 3.3 70B Versatile</option>
+        <option value="llama3-8b-8192">🦙 Llama 3 8B (8192)</option>
+        <option value="llama3-70b-8192">🦙 Llama 3 70B (8192)</option>
+        <option value="mixtral-8x7b-32768">🌀 Mixtral 8x7B</option>
+        <option value="gemma2-9b-it">💎 Gemma 2 9B</option>
+      </select>
+    </div>
+    <div class="ai-status" id="groq-status-ig"></div>
+  </div>
+
+  <!-- Controles Globais -->
+  <div class="global-controls">
+    <button class="btn-global stop-all"  data-platform="instagram" data-cmd="STOP_ALL">🛑 Parar Tudo</button>
+    <button class="btn-global pause-all" data-platform="instagram" data-cmd="PAUSE_ALL">⏸ Pausar</button>
+    <button class="btn-global resume-all"data-platform="instagram" data-cmd="RESUME_ALL">▶ Retomar</button>
+  </div>
+
+  <!-- 📨 CENTRAL DE DIRECTS (DM MARKETING) -->
+  <div class="campaign-card">
+    <div class="campaign-card-header">
+      <div class="campaign-title-wrap">
+        <span class="campaign-badge ig">📸 DIRECT MARKETING</span>
+        <span class="campaign-title">Disparador de DMs Direcionadas</span>
+      </div>
+    </div>
+    <div class="input-group">
+      <div class="label-with-action">
+        <label class="input-label" for="ig-dm-targets">Perfis Alvos (um por linha, sem @):</label>
+        <button class="btn-mini" id="btn-use-scraped-followers" type="button">Usar Extraídos</button>
+      </div>
+      <textarea class="input-field" id="ig-dm-targets" rows="2" placeholder="perfil1&#10;perfil2&#10;perfil3"></textarea>
+    </div>
+    <div class="input-group">
+      <div class="label-with-action">
+        <label class="input-label" for="ig-dm-template">Mensagem da DM (use {nome} ou {usuario}):</label>
+        <button class="btn-ai-sparkle" id="btn-ai-generate-ig-dm" type="button">⚡ Gerar DM com Groq IA</button>
+      </div>
+      <textarea class="input-field" id="ig-dm-template" rows="2" placeholder="Olá {nome}! Vi seu perfil e achei muito interessante 😊"></textarea>
+    </div>
+    <div class="campaign-btn-row">
+      <button class="btn-campaign start" id="ig-dm-btn" data-action="DM" data-platform="instagram">🚀 Iniciar Envio de DMs</button>
+    </div>
+  </div>
+
+  <!-- 🔍 EXTRATOR DE SEGUIDORES -->
+  <div class="campaign-card">
+    <div class="campaign-card-header">
+      <div class="campaign-title-wrap">
+        <span class="campaign-badge ig">👥 EXTRATOR</span>
+        <span class="campaign-title">Extração de Seguidores</span>
+      </div>
+    </div>
+    <div class="input-row-2">
+      <div class="input-group">
+        <label class="input-label" for="ig-target-profile">Perfil Alvo:</label>
+        <input type="text" class="input-field" id="ig-target-profile" placeholder="@perfil_alvo" />
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="ig-limit-scraper">Quantidade:</label>
+        <input type="number" class="input-field" id="ig-limit-scraper" value="50" min="10" max="500" />
+      </div>
+    </div>
+    <div class="campaign-btn-row">
+      <button class="btn-campaign start" id="ig-scraper-btn" data-action="SCRAPER" data-platform="instagram">🔍 Extrair Seguidores</button>
+    </div>
+    <div class="scraper-result" id="ig-scraper-result">
+      <span class="scraper-result-text" id="ig-scraper-result-text">0 seguidores coletados</span>
+      <button class="btn-export" id="ig-scraper-export">⬇ Exportar CSV</button>
+    </div>
+  </div>
+
+  <!-- AÇÕES DE ENGAJAMENTO (CRESCIMENTO ORGÂNICO) -->
+  <div class="section-divider">⚡ Ações de Crescimento & Engajamento</div>
+  <div class="action-grid">
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">👥</span><span class="action-badge" id="ig-follow-badge">Parado</span></div>
+      <div class="action-title">Auto-Follow</div>
+      <div class="action-count">Seguindo: <span id="ig-follow-count">0</span></div>
+      <button class="action-btn start" id="ig-follow-btn" data-action="FOLLOW" data-platform="instagram">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">🚫</span><span class="action-badge" id="ig-unfollow-badge">Parado</span></div>
+      <div class="action-title">Auto-Unfollow</div>
+      <div class="action-count">Deixou: <span id="ig-unfollow-count">0</span></div>
+      <button class="action-btn start" id="ig-unfollow-btn" data-action="UNFOLLOW" data-platform="instagram">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">❤️</span><span class="action-badge" id="ig-like-badge">Parado</span></div>
+      <div class="action-title">Auto-Like Feed</div>
+      <div class="action-count">Curtidas: <span id="ig-like-count">0</span></div>
+      <button class="action-btn start" id="ig-like-btn" data-action="LIKE" data-platform="instagram">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">🎯</span><span class="action-badge" id="ig-profilelike-badge">Parado</span></div>
+      <div class="action-title">Curtir no Perfil</div>
+      <div class="action-count">Curtidas: <span id="ig-profilelike-count">0</span></div>
+      <button class="action-btn start" id="ig-profilelike-btn" data-action="PROFILELIKE" data-platform="instagram">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">💬</span><span class="action-badge" id="ig-comment-badge">Parado</span></div>
+      <div class="action-title">Comentar Posts (IA)</div>
+      <div class="action-count">Comentários: <span id="ig-comment-count">0</span></div>
+      <button class="action-btn start" id="ig-comment-btn" data-action="COMMENT" data-platform="instagram">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">👁️</span><span class="action-badge" id="ig-story-badge">Parado</span></div>
+      <div class="action-title">Ver Stories</div>
+      <div class="action-count">Stories: <span id="ig-story-count">0</span></div>
+      <button class="action-btn start" id="ig-story-btn" data-action="STORY" data-platform="instagram">▶ Iniciar</button>
+    </div>
+  </div>
+
+  <!-- Configurações Rápidas Integradas na Aba -->
+  <div class="accordion" id="accordion-ig">
+    <button class="accordion-header" id="btn-toggle-config-ig" type="button">
+      <span>⚙️ Filtros e Limites do Instagram</span>
+      <span class="accordion-arrow">▼</span>
+    </button>
+    <div class="accordion-body">
+      <div class="input-group">
+        <label class="input-label" for="ig-hashtag">Hashtag alvo (sem #):</label>
+        <input type="text" class="input-field" id="ig-hashtag" placeholder="ex: marketingdigital" />
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Filtrar: apenas conta pública</span>
+        <label class="toggle" for="ig-filter-public"><input type="checkbox" id="ig-filter-public" title="Filtrar: apenas conta pública" aria-label="Filtrar: apenas conta pública" checked /><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Limite Seguir/hora</span>
+        <div class="slider-wrap"><input type="range" id="ig-limit-follow" min="5" max="50" value="20" title="Limite Seguir por hora" aria-label="Limite Seguir por hora" /></div>
+        <span class="setting-value" id="ig-limit-follow-val">20</span>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Limite Curtidas/hora</span>
+        <div class="slider-wrap"><input type="range" id="ig-limit-like" min="10" max="100" value="50" title="Limite Curtidas por hora" aria-label="Limite Curtidas por hora" /></div>
+        <span class="setting-value" id="ig-limit-like-val">50</span>
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="ig-comments">Comentários Manuais (se IA desligada):</label>
+        <textarea class="input-field" id="ig-comments" rows="2" placeholder="Ótima publicação! 🔥&#10;Muito relevante!"></textarea>
+      </div>
+      <button class="btn-save" id="btn-save-ig" type="button">💾 Salvar Configurações</button>
+    </div>
+  </div>
+
+  <!-- Velocidade de Simulação -->
+  <div class="settings-section">
+    <div class="section-title">⚡ Velocidade de Operação</div>
+    <div class="speed-group" id="ig-speed-group">
+      <button class="speed-btn" data-speed="devagar" data-platform="instagram">🐢 Devagar</button>
+      <button class="speed-btn active" data-speed="normal" data-platform="instagram">🚶 Normal</button>
+      <button class="speed-btn" data-speed="rapido" data-platform="instagram">🚀 Rápido</button>
+    </div>
+  </div>
+
+  <!-- Terminal de Logs -->
+  <div class="log-panel">
+    <div class="log-header">
+      <span class="log-title"><span class="log-live-dot"></span>Logs — Instagram</span>
+      <button class="log-clear-btn" data-platform="instagram">Limpar</button>
+    </div>
+    <div class="log-body" id="log-instagram">
+      <div class="log-entry info"><span class="log-time">--:--</span><span class="log-msg">MetaFlow pronto no Instagram.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────── 📘 FACEBOOK -->
+<section class="tab-panel" id="panel-facebook">
+
+  <div class="captcha-alert" id="fb-captcha-alert">
+    <span class="captcha-alert-icon">🔒</span>
+    <div class="captcha-alert-text"><strong>Aviso de Verificação!</strong> Resolva o desafio no Facebook e reinicie.</div>
+  </div>
+
+  <div class="status-banner">
+    <div class="status-left">
+      <div class="status-indicator" id="fb-status-dot"></div>
+      <div>
+        <div class="status-text" id="fb-status-text">Inativo</div>
+        <div class="status-sub" id="fb-status-sub">Abra o Facebook para começar</div>
+      </div>
+    </div>
+    <div class="chip" id="fb-tab-chip">Tab: —</div>
+  </div>
+
+  <!-- Card Groq IA Integrado -->
+  <div class="ai-card">
+    <div class="ai-card-header">
+      <div class="ai-badge-wrap">
+        <span class="ai-chip">⚡ Groq IA</span>
+        <span class="ai-title">Comentários e Posts com IA no Facebook</span>
+      </div>
+      <label class="toggle" for="fb-use-ai">
+        <input type="checkbox" id="fb-use-ai" title="Ativar Groq IA para Facebook" aria-label="Ativar Groq IA para Facebook" checked />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="ai-key-row">
+      <input type="password" class="input-field" id="groq-api-key-fb" placeholder="Chave Groq (gsk_...)" title="Chave de API da Groq" aria-label="Chave de API da Groq" />
+      <button class="btn-test-ai" id="btn-test-groq-fb" title="Testar chave da Groq">Testar</button>
+    </div>
+    <div class="ai-model-row">
+      <label class="input-label" for="groq-model-fb">Modelo:</label>
+      <select class="input-field ai-model-select" id="groq-model-fb" title="Modelo da IA Groq" aria-label="Modelo da IA Groq">
+        <option value="llama-3.1-8b-instant" selected>⚡ Llama 3.1 8B Instant (Recomendado / Livre)</option>
+        <option value="llama-3.3-70b-versatile">🧠 Llama 3.3 70B Versatile</option>
+        <option value="llama3-8b-8192">🦙 Llama 3 8B (8192)</option>
+        <option value="llama3-70b-8192">🦙 Llama 3 70B (8192)</option>
+        <option value="mixtral-8x7b-32768">🌀 Mixtral 8x7B</option>
+        <option value="gemma2-9b-it">💎 Gemma 2 9B</option>
+      </select>
+    </div>
+    <div class="ai-status" id="groq-status-fb"></div>
+  </div>
+
+  <div class="global-controls">
+    <button class="btn-global stop-all"  data-platform="facebook" data-cmd="STOP_ALL">🛑 Parar Tudo</button>
+    <button class="btn-global pause-all" data-platform="facebook" data-cmd="PAUSE_ALL">⏸ Pausar</button>
+    <button class="btn-global resume-all"data-platform="facebook" data-cmd="RESUME_ALL">▶ Retomar</button>
+  </div>
+
+  <!-- 👥 SEÇÃO MEUS GRUPOS (Grupos que Participo) -->
+  <div class="campaign-card" id="fb-my-groups-card">
+    <div class="campaign-card-header">
+      <div class="campaign-title-wrap">
+        <span class="campaign-badge fb">👥 MEUS GRUPOS</span>
+        <span class="campaign-title">Grupos que Participo</span>
+      </div>
+      <button class="btn-mini-primary" id="btn-load-my-groups" type="button" title="Acessar /groups/joins/ e carregar todos os grupos onde sou membro">🔄 Carregar Meus Grupos</button>
+    </div>
+
+    <div class="group-results-wrap" id="fb-my-groups-wrap">
+      <div class="group-results-header">
+        <span id="fb-my-groups-count">Nenhum grupo carregado ainda</span>
+        <div class="group-results-actions">
+          <button class="btn-mini" id="btn-select-all-my-groups" type="button">Marcar Todos</button>
+          <button class="btn-mini" id="btn-deselect-all-my-groups" type="button">Desmarcar</button>
+        </div>
+      </div>
+      <div class="group-results-list" id="fb-my-groups-list">
+        <div class="group-empty-hint">Clique em <strong>🔄 Carregar Meus Grupos</strong> para importar automaticamente todos os grupos que você já participa no Facebook.</div>
+      </div>
+    </div>
+
+    <!-- Barra de Ações Rápidas de Meus Grupos (Extrair Membros / Usar no Publicador) -->
+    <div class="my-groups-actions-bar">
+      <div class="my-groups-action-item">
+        <label class="input-label" for="fb-scrape-limit">Qtd. Membros:</label>
+        <input type="number" id="fb-scrape-limit" class="input-field mini-num" value="100" min="10" max="1000" title="Limite de membros a extrair" />
+      </div>
+      <button class="btn-action-highlight" id="btn-scrape-selected-group" type="button" title="Extrai os membros do grupo marcado acima">👥 Extrair Membros do Grupo Selecionado</button>
+      <button class="btn-mini" id="btn-use-my-groups-in-post" type="button" title="Adiciona estes grupos para a lista de publicação">📢 Usar no Publicador</button>
+      <button class="btn-mini" id="btn-export-fb-members" type="button" title="Baixar lista em CSV">⬇ Exportar CSV</button>
+    </div>
+    <div class="scraper-result" id="fb-members-result" style="display:none; margin-top:8px;">
+      <span class="scraper-result-text" id="fb-members-result-text">0 membros coletados</span>
+    </div>
+  </div>
+
+  <!-- 📢 CENTRAL DE PUBLICAÇÃO EM GRUPOS (DESTAQUE PRINCIPAL) -->
+  <div class="campaign-card highlight">
+    <div class="campaign-card-header">
+      <div class="campaign-title-wrap">
+        <span class="campaign-badge fb">📢 MULTI-GRUPOS</span>
+        <span class="campaign-title">Operações em Grupos do Facebook</span>
+      </div>
+      <span class="campaign-tag">Marketing Ativo</span>
+    </div>
+
+    <!-- Seletor de Modo de Ação -->
+    <div class="input-group">
+      <label class="input-label" for="fb-group-action-mode">🎯 Modo de Operação nos Grupos:</label>
+      <select class="input-field mode-select" id="fb-group-action-mode" title="Escolha o que fazer com os grupos">
+        <option value="join_and_post" selected>🚀 Entrar e Postar (Participar se necessário + Publicar)</option>
+        <option value="join_only">➕ Apenas Entrar nos Grupos (Participar em massa)</option>
+        <option value="post_only">📢 Apenas Postar (Para grupos onde já é membro)</option>
+        <option value="search_only">🔍 Apenas Buscar Grupos (Apenas listar)</option>
+      </select>
+    </div>
+
+    <!-- 1. Buscador por Palavra-chave -->
+    <div class="input-group">
+      <label class="input-label" for="fb-search-keyword">1. Buscar Grupos por Nicho / Palavra-Chave:</label>
+      <div class="search-input-row">
+        <input type="text" class="input-field" id="fb-search-keyword" placeholder="Ex: Marketing Digital, Renda Extra, Vendas..." />
+        <button class="btn-search-groups" id="btn-search-fb-groups" type="button">🔍 Buscar Grupos</button>
+      </div>
+    </div>
+
+    <!-- 2. Lista de Resultados com Seleção -->
+    <div class="group-results-wrap" id="fb-groups-results-wrap">
+      <div class="group-results-header">
+        <span id="fb-groups-count">Nenhum grupo buscado ainda</span>
+        <div class="group-results-actions">
+          <button class="btn-mini" id="btn-select-all-groups" type="button">Marcar Todos</button>
+          <button class="btn-mini" id="btn-deselect-all-groups" type="button">Desmarcar</button>
+        </div>
+      </div>
+      <div class="group-results-list" id="fb-groups-results-list">
+        <div class="group-empty-hint">Digite a palavra-chave acima e clique em <strong>Buscar Grupos</strong> para listar e selecionar os grupos onde postar.</div>
+      </div>
+    </div>
+
+    <!-- Ou colar URLs manuais -->
+    <details class="manual-urls-details">
+      <summary class="manual-urls-summary">🔗 Ou cole links de grupos manualmente (um por linha)</summary>
+      <textarea class="input-field mt-4" id="fb-target-groups-manual" rows="2" placeholder="https://www.facebook.com/groups/seugrupo1&#10;https://www.facebook.com/groups/seugrupo2"></textarea>
+    </details>
+
+    <!-- 2. Tema Central para a IA -->
+    <div class="input-group mt-6">
+      <label class="input-label" for="fb-post-theme">2. Tema Central / Assunto para IA (opcional):</label>
+      <div class="theme-input-wrap">
+        <input type="text" class="input-field" id="fb-post-theme" placeholder="Ex: Dica de como vender mais no Facebook, Oferta relâmpago..." title="Tema central para a IA gerar o post" aria-label="Tema central para a IA gerar o post" />
+        <button class="btn-ai-sparkle" id="btn-ai-generate-fb-post" type="button" title="Gerar copy baseada no tema central acima">⚡ Gerar Copy com Groq IA</button>
+      </div>
+    </div>
+
+    <!-- 3. Criador de Post -->
+    <div class="input-group">
+      <label class="input-label" for="fb-post-text">3. Conteúdo da Postagem (suporta Spintax {Olá|Oi}):</label>
+      <textarea class="input-field" id="fb-post-text" rows="3" placeholder="Escreva sua mensagem com Spintax {Olá|Oi} ou informe o tema acima e clique em 'Gerar Copy com Groq IA'..."></textarea>
+    </div>
+
+    <!-- 4. Fotos e Vídeos -->
+    <div class="input-group">
+      <div class="label-with-action">
+        <label class="input-label" for="fb-media-files">4. Fotos ou Vídeos da Postagem (opcional):</label>
+        <button class="btn-mini" id="btn-add-media" type="button">📷 Anexar Mídia</button>
+      </div>
+      <div class="media-upload-zone" id="fb-media-dropzone">
+        <span class="media-upload-icon">📷 / 🎥</span>
+        <span class="media-upload-text">Arraste fotos ou vídeos aqui, ou clique em <strong>Anexar Mídia</strong></span>
+        <input type="file" id="fb-media-files" accept="image/*,video/*" multiple class="hidden-input" title="Selecionar fotos e vídeos" aria-label="Selecionar fotos e vídeos" />
+      </div>
+      <div class="media-preview-container" id="fb-media-previews"></div>
+    </div>
+
+    <!-- 5. Link de Divulgação -->
+    <div class="input-group">
+      <label class="input-label" for="fb-post-link">5. Link de Divulgação / Destino (opcional):</label>
+      <input type="url" class="input-field" id="fb-post-link" placeholder="https://seusite.com/oferta ou link do WhatsApp" />
+    </div>
+
+    <!-- 5. Intervalo Seguro & Botões de Disparo -->
+    <div class="campaign-footer-row">
+      <div class="delay-control">
+        <label class="input-label" for="fb-group-delay-min">Pausa anti-bloqueio:</label>
+        <input type="number" id="fb-group-delay-min" class="input-field mini-num" value="60" min="30" title="Segundos mínimos" />s a
+        <input type="number" id="fb-group-delay-max" class="input-field mini-num" value="120" min="60" title="Segundos máximos" />s
+      </div>
+      <div class="campaign-btn-row">
+        <button class="btn-campaign start" id="btn-start-multi-group-post" type="button">🚀 Publicar nos Grupos Selecionados</button>
+        <button class="btn-campaign stop" id="btn-stop-group-post" type="button">🛑 Parar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📅 CRIAR / AGENDAR EVENTO -->
+  <div class="campaign-card">
+    <div class="campaign-card-header">
+      <div class="campaign-title-wrap">
+        <span class="campaign-badge fb">📅 EVENTOS</span>
+        <span class="campaign-title">Criador e Agendador de Eventos</span>
+      </div>
+    </div>
+    <div class="input-row-2">
+      <div class="input-group">
+        <label class="input-label" for="fb-event-title">Título do Evento:</label>
+        <input type="text" class="input-field" id="fb-event-title" placeholder="Ex: Masterclass de Vendas Online" />
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="fb-event-date">Data:</label>
+        <input type="date" class="input-field" id="fb-event-date" title="Data do evento" aria-label="Data do evento" />
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="fb-event-link">Link do Evento / Inscrição:</label>
+      <input type="url" class="input-field" id="fb-event-link" placeholder="https://seulink.com/evento" />
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="fb-event-description">Descrição:</label>
+      <textarea class="input-field" id="fb-event-description" rows="2" placeholder="Participe do nosso evento exclusivo..."></textarea>
+    </div>
+    <div class="campaign-btn-row">
+      <button class="btn-campaign start" id="fb-event-btn" data-action="EVENT" data-platform="facebook">🚀 Criar Evento no Facebook</button>
+    </div>
+  </div>
+
+  <!-- ✉️ MESSENGER MARKETING -->
+  <div class="campaign-card">
+    <div class="campaign-card-header">
+      <div class="campaign-title-wrap">
+        <span class="campaign-badge fb">✉️ MESSENGER</span>
+        <span class="campaign-title">Disparador no Messenger</span>
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="fb-messenger-contacts">Nomes dos Amigos/Contatos (um por linha):</label>
+      <textarea class="input-field" id="fb-messenger-contacts" rows="2" placeholder="Nome do Amigo 1&#10;Nome do Amigo 2"></textarea>
+    </div>
+    <div class="input-group">
+      <div class="label-with-action">
+        <label class="input-label" for="fb-messenger-template">Mensagem (use {nome}):</label>
+        <button class="btn-ai-sparkle" id="btn-ai-generate-fb-msg" type="button">⚡ Gerar com Groq IA</button>
+      </div>
+      <textarea class="input-field" id="fb-messenger-template" rows="2" placeholder="Olá {nome}! Tudo bem? Veja essa novidade 😊"></textarea>
+    </div>
+    <div class="campaign-btn-row">
+      <button class="btn-campaign start" id="fb-messenger-btn" data-action="MESSENGER" data-platform="facebook">🚀 Enviar Mensagens</button>
+    </div>
+  </div>
+
+  <!-- AÇÕES DE ENGAJAMENTO NO FACEBOOK -->
+  <div class="section-divider">⚡ Ações Rápidas de Engajamento</div>
+  <div class="action-grid">
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">👍</span><span class="action-badge" id="fb-like-badge">Parado</span></div>
+      <div class="action-title">Curtir Feed</div>
+      <div class="action-count">Curtidas: <span id="fb-like-count">0</span></div>
+      <button class="action-btn start" id="fb-like-btn" data-action="LIKE" data-platform="facebook">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">🏘</span><span class="action-badge" id="fb-groupllike-badge">Parado</span></div>
+      <div class="action-title">Curtir em Grupos</div>
+      <div class="action-count">Curtidas: <span id="fb-groupllike-count">0</span></div>
+      <button class="action-btn start" id="fb-groupllike-btn" data-action="GROUPLLIKE" data-platform="facebook">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">💬</span><span class="action-badge" id="fb-comment-badge">Parado</span></div>
+      <div class="action-title">Comentar Posts (IA)</div>
+      <div class="action-count">Comentários: <span id="fb-comment-count">0</span></div>
+      <button class="action-btn start" id="fb-comment-btn" data-action="COMMENT" data-platform="facebook">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">🤝</span><span class="action-badge" id="fb-friend-badge">Parado</span></div>
+      <div class="action-title">Adicionar Amigos</div>
+      <div class="action-count">Enviadas: <span id="fb-friend-count">0</span></div>
+      <button class="action-btn start" id="fb-friend-btn" data-action="FRIEND" data-platform="facebook">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">✅</span><span class="action-badge" id="fb-acceptfriend-badge">Parado</span></div>
+      <div class="action-title">Aceitar Pedidos</div>
+      <div class="action-count">Aceitos: <span id="fb-acceptfriend-count">0</span></div>
+      <button class="action-btn start" id="fb-acceptfriend-btn" data-action="ACCEPTFRIEND" data-platform="facebook">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">🔄</span><span class="action-badge" id="fb-share-badge">Parado</span></div>
+      <div class="action-title">Compartilhar Posts</div>
+      <div class="action-count">Compartilhados: <span id="fb-share-count">0</span></div>
+      <button class="action-btn start" id="fb-share-btn" data-action="SHARE" data-platform="facebook">▶ Iniciar</button>
+    </div>
+    <div class="action-card">
+      <div class="action-card-header"><span class="action-icon">👥</span><span class="action-badge" id="fb-memberscraper-badge">Parado</span></div>
+      <div class="action-title">Extrair Membros</div>
+      <div class="action-count">Coletados: <span id="fb-memberscraper-count">0</span></div>
+      <button class="action-btn start" id="fb-memberscraper-btn" data-action="MEMBERSCRAPER" data-platform="facebook">▶ Iniciar</button>
+    </div>
+  </div>
+
+  <!-- Terminal de Logs -->
+  <div class="log-panel">
+    <div class="log-header">
+      <span class="log-title"><span class="log-live-dot"></span>Logs — Facebook</span>
+      <button class="log-clear-btn" data-platform="facebook">Limpar</button>
+    </div>
+    <div class="log-body" id="log-facebook">
+      <div class="log-entry info"><span class="log-time">--:--</span><span class="log-msg">MetaFlow pronto no Facebook.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────── 💬 WHATSAPP -->
+<section class="tab-panel" id="panel-whatsapp">
+
+  <div class="captcha-alert" id="wa-captcha-alert">
+    <span class="captcha-alert-icon">🔒</span>
+    <div class="captcha-alert-text"><strong>Aviso:</strong> WhatsApp Web desconectado ou aguardando QR Code.</div>
+  </div>
+
+  <div class="status-banner">
+    <div class="status-left">
+      <div class="status-indicator" id="wa-status-dot"></div>
+      <div>
+        <div class="status-text" id="wa-status-text">Inativo</div>
+        <div class="status-sub" id="wa-status-sub">Abra o WhatsApp Web para começar</div>
+      </div>
+    </div>
+    <div class="chip" id="wa-tab-chip">Tab: —</div>
+  </div>
+
+  <!-- Card Groq IA Integrado no WhatsApp -->
+  <div class="ai-card">
+    <div class="ai-card-header">
+      <div class="ai-badge-wrap">
+        <span class="ai-chip">⚡ Groq IA</span>
+        <span class="ai-title">Respostas Automáticas e Mensagens com IA</span>
+      </div>
+      <label class="toggle" for="wa-use-ai">
+        <input type="checkbox" id="wa-use-ai" title="Ativar Groq IA no WhatsApp" aria-label="Ativar Groq IA no WhatsApp" checked />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="ai-key-row">
+      <input type="password" class="input-field" id="groq-api-key-wa" placeholder="Chave Groq (gsk_...)" title="Chave de API da Groq" aria-label="Chave de API da Groq" />
+      <button class="btn-test-ai" id="btn-test-groq-wa" title="Testar chave da Groq">Testar</button>
+    </div>
+    <div class="ai-model-row">
+      <label class="input-label" for="groq-model-wa">Modelo:</label>
+      <select class="input-field ai-model-select" id="groq-model-wa" title="Modelo da IA Groq" aria-label="Modelo da IA Groq">
+        <option value="llama-3.1-8b-instant" selected>⚡ Llama 3.1 8B Instant (Recomendado / Livre)</option>
+        <option value="llama-3.3-70b-versatile">🧠 Llama 3.3 70B Versatile</option>
+        <option value="llama3-8b-8192">🦙 Llama 3 8B (8192)</option>
+        <option value="llama3-70b-8192">🦙 Llama 3 70B (8192)</option>
+        <option value="mixtral-8x7b-32768">🌀 Mixtral 8x7B</option>
+        <option value="gemma2-9b-it">💎 Gemma 2 9B</option>
+      </select>
+    </div>
+    <div class="ai-status" id="groq-status-wa"></div>
+  </div>
+
+  <div class="global-controls">
+    <button class="btn-global stop-all"  data-platform="whatsapp" data-cmd="STOP_ALL">🛑 Parar Tudo</button>
+    <button class="btn-global pause-all" data-platform="whatsapp" data-cmd="PAUSE_ALL">⏸ Pausar</button>
+    <button class="btn-global resume-all"data-platform="whatsapp" data-cmd="RESUME_ALL">▶ Retomar</button>
+  </div>
+
+  <!-- ✉️ CENTRAL DE DISPARO EM MASSA (WHATSAPP) -->
+  <div class="campaign-card highlight">
+    <div class="campaign-card-header">
+      <div class="campaign-title-wrap">
+        <span class="campaign-badge wa">💬 DISPARO EM MASSA</span>
+        <span class="campaign-title">Envio para Contatos & Listas CSV</span>
+      </div>
+      <span class="campaign-tag">Direto no Chat</span>
+    </div>
+
+    <div class="input-group">
+      <div class="label-with-action">
+        <label class="input-label" for="wa-message-template">1. Mensagem com Personalização:</label>
+        <button class="btn-ai-sparkle" id="btn-ai-generate-wa-msg" type="button">⚡ Gerar com Groq IA</button>
+      </div>
+      <div class="var-chips-row">
+        <button type="button" class="var-chip" data-var="{nome}">+ {nome}</button>
+        <button type="button" class="var-chip" data-var="{empresa}">+ {empresa}</button>
+        <button type="button" class="var-chip" data-var="{saudacao}">+ {saudacao}</button>
+      </div>
+      <textarea class="input-field" id="wa-message-template" rows="3" placeholder="Olá {nome}! Tudo bem? Compartilho uma grande novidade..."></textarea>
+    </div>
+
+    <div class="input-row-2">
+      <div class="input-group">
+        <label class="input-label" for="wa-message-link">2. Link de Divulgação (com preview):</label>
+        <input type="url" class="input-field" id="wa-message-link" placeholder="https://seusite.com" />
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="wa-media-url">Imagem / Mídia (URL opcional):</label>
+        <input type="text" class="input-field" id="wa-media-url" placeholder="https://exemplo.com/foto.jpg" />
+      </div>
+    </div>
+
+    <!-- Contatos e CSV -->
+    <div class="input-group">
+      <label class="input-label" for="wa-contacts">3. Contatos (números com código do país, um por linha):</label>
+      <textarea class="input-field" id="wa-contacts" rows="2" placeholder="5511999999999&#10;5521988888888"></textarea>
+    </div>
+
+    <div class="csv-dropzone" id="wa-csv-dropzone">
+      <span class="csv-icon">📂</span>
+      <span class="csv-text">Arraste uma lista CSV aqui (número, nome, empresa)</span>
+      <input type="file" id="wa-csv-file" accept=".csv" class="hidden-input" title="Selecionar arquivo CSV de contatos" aria-label="Selecionar arquivo CSV de contatos" />
+    </div>
+    <div class="csv-loaded-info" id="wa-csv-info"></div>
+
+    <div class="campaign-footer-row">
+      <div class="delay-control">
+        <label class="input-label" for="wa-delay-min">Intervalo:</label>
+        <input type="number" id="wa-delay-min" class="input-field mini-num" value="8" min="3" title="Intervalo mínimo em segundos" aria-label="Intervalo mínimo em segundos" />s a
+        <input type="number" id="wa-delay-max" class="input-field mini-num" value="20" min="5" title="Intervalo máximo em segundos" aria-label="Intervalo máximo em segundos" />s
+      </div>
+      <div class="campaign-btn-row">
+        <button class="btn-campaign start" id="wa-bulk-btn" data-action="BULK" data-platform="whatsapp">🚀 Iniciar Disparo em Massa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 👥 DISPARO EM GRUPOS DO WHATSAPP -->
+  <div class="campaign-card">
+    <div class="campaign-card-header">
+      <div class="campaign-title-wrap">
+        <span class="campaign-badge wa">👥 GRUPOS WHATSAPP</span>
+        <span class="campaign-title">Disparo em Grupos</span>
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="wa-groups">Nomes dos Grupos Alvos (um por linha):</label>
+      <textarea class="input-field" id="wa-groups" rows="2" placeholder="Grupo Clientes VIP&#10;Afiliados Brasil"></textarea>
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="wa-group-template">Mensagem para os Grupos:</label>
+      <textarea class="input-field" id="wa-group-template" rows="2" placeholder="Olá a todos do grupo! Olhem este aviso..."></textarea>
+    </div>
+    <div class="campaign-btn-row">
+      <button class="btn-campaign start" id="wa-group-btn" data-action="GROUP" data-platform="whatsapp">🚀 Disparar nos Grupos</button>
+    </div>
+  </div>
+
+  <!-- 🤖 AUTO-RESPOSTA COM GROQ IA -->
+  <div class="campaign-card">
+    <div class="campaign-card-header">
+      <div class="campaign-title-wrap">
+        <span class="campaign-badge wa">🤖 AUTO-REPLY</span>
+        <span class="campaign-title">Atendente com Groq IA</span>
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="wa-reply-template">Contexto do Negócio / Orientações:</label>
+      <textarea class="input-field" id="wa-reply-template" rows="2" placeholder="Somos uma agência de marketing digital. Horário de atendimento das 9h às 18h..."></textarea>
+    </div>
+    <div class="campaign-btn-row">
+      <button class="btn-campaign start" id="wa-reply-btn" data-action="REPLY" data-platform="whatsapp">▶ Ativar Auto-Resposta com IA</button>
+    </div>
+  </div>
+
+  <!-- Mini Estatísticas -->
+  <div class="stats-mini-grid">
+    <div class="stats-mini-card"><div class="mini-val" id="wa-stat-sent">0</div><div class="mini-lbl">Enviadas</div></div>
+    <div class="stats-mini-card"><div class="mini-val" id="wa-stat-delivered">0</div><div class="mini-lbl">Entregues</div></div>
+    <div class="stats-mini-card"><div class="mini-val" id="wa-stat-failed">0</div><div class="mini-lbl">Falhas</div></div>
+    <div class="stats-mini-card"><div class="mini-val" id="wa-stat-pending">0</div><div class="mini-lbl">Pendentes</div></div>
+  </div>
+
+  <!-- Terminal de Logs -->
+  <div class="log-panel">
+    <div class="log-header">
+      <span class="log-title"><span class="log-live-dot"></span>Logs — WhatsApp</span>
+      <button class="log-clear-btn" data-platform="whatsapp">Limpar</button>
+    </div>
+    <div class="log-body" id="log-whatsapp">
+      <div class="log-entry info"><span class="log-time">--:--</span><span class="log-msg">MetaFlow pronto no WhatsApp Web.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────── 📊 DASHBOARD -->
+<section class="tab-panel" id="panel-dashboard">
+  <div class="dashboard-grid">
+    <div class="dash-card"><div class="dash-num" id="dash-follows">0</div><div class="dash-lbl">Follows</div></div>
+    <div class="dash-card"><div class="dash-num" id="dash-likes">0</div><div class="dash-lbl">Likes</div></div>
+    <div class="dash-card"><div class="dash-num" id="dash-comments">0</div><div class="dash-lbl">Comentários</div></div>
+    <div class="dash-card"><div class="dash-num" id="dash-dms">0</div><div class="dash-lbl">DMs</div></div>
+    <div class="dash-card"><div class="dash-num" id="dash-messages">0</div><div class="dash-lbl">WhatsApps</div></div>
+    <div class="dash-card"><div class="dash-num" id="dash-stories">0</div><div class="dash-lbl">Stories</div></div>
+  </div>
+
+  <div class="settings-section mt-6">
+    <div class="section-title">📊 Volume por Plataforma</div>
+    <div class="dash-bar-wrap">
+      <div class="dash-bar ig" id="bar-ig"></div>
+      <div class="dash-bar fb" id="bar-fb"></div>
+      <div class="dash-bar wa" id="bar-wa"></div>
+    </div>
+    <div class="dash-legend">
+      <span><span class="legend-dot ig"></span>Instagram</span>
+      <span><span class="legend-dot fb"></span>Facebook</span>
+      <span><span class="legend-dot wa"></span>WhatsApp</span>
+    </div>
+  </div>
+
+  <div class="settings-section mt-6">
+    <div class="section-title">🕐 Histórico de Sessões</div>
+    <div class="sessions-list" id="dash-sessions-list">
+      <div class="empty-sessions">Nenhuma sessão registrada hoje.</div>
+    </div>
+  </div>
+
+  <div class="campaign-btn-row mt-6">
+    <button class="btn-campaign danger w-full" id="btn-reset-stats">🗑 Zerar Estatísticas</button>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────── 📖 MANUAL -->
+<section class="tab-panel" id="panel-manual">
+  <div class="manual-container">
+    <div class="manual-card">
+      <div class="manual-title">⚡ Como Obter a Chave Grátis da Groq IA</div>
+      <div class="manual-item">1. Acesse <strong>console.groq.com</strong> e crie uma conta gratuita.</div>
+      <div class="manual-item">2. Vá em <em>API Keys ➔ Create API Key</em> e copie sua chave (começa com <code>gsk_...</code>).</div>
+      <div class="manual-item">3. Cole no campo da IA do MetaFlow e clique em <strong>Testar</strong>.</div>
+      <div class="manual-tip">💡 O modelo <strong>Llama 3.1 8B Instant</strong> é universal, gratuito e responde em menos de 0.3 segundos!</div>
+    </div>
+
+    <div class="manual-card">
+      <div class="manual-title">📢 Como Usar o Buscador de Grupos no Facebook</div>
+      <div class="manual-item">1. Digite uma palavra-chave do seu nicho (ex: <strong>Marketing Digital</strong>) e clique em <strong>Buscar Grupos</strong>.</div>
+      <div class="manual-item">2. O robô listará os grupos encontrados com quantidade de membros e links.</div>
+      <div class="manual-item">3. Selecione os grupos desejados com os checkboxes (ou clique em <strong>Marcar Todos</strong>).</div>
+      <div class="manual-item">4. Digite a mensagem (ou clique em <strong>⚡ Gerar Copy com Groq IA</strong>) e adicione seu link.</div>
+      <div class="manual-item">5. Clique em <strong>🚀 Publicar nos Grupos Selecionados</strong>. O robô visitará cada grupo, publicará o post com intervalo seguro anti-bloqueio!</div>
+    </div>
+
+    <div class="manual-card">
+      <div class="manual-title">🛡️ Limites Seguros Recomendados</div>
+      <table class="manual-table">
+        <thead><tr><th>Ação</th><th>Limite Diário</th><th>Intervalo Recomendado</th></tr></thead>
+        <tbody>
+          <tr><td>Grupos Facebook</td><td>15 a 30 grupos/dia</td><td>60 a 120s</td></tr>
+          <tr><td>WhatsApp em Massa</td><td>40 a 80 envios/dia</td><td>10 a 25s</td></tr>
+          <tr><td>Instagram DMs</td><td>20 a 40 DMs/dia</td><td>30 a 60s</td></tr>
+          <tr><td>Instagram Follow</td><td>40 a 80 perfis/dia</td><td>20 a 40s</td></tr>
+          <tr><td>Curtidas</td><td>100 a 200/dia</td><td>5 a 15s</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ════════════════════════════════════════ MODAL DE CONFIGURAÇÕES GERAIS -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title">⚙️ Configurações Globais</span>
+      <button class="modal-close-btn" id="btn-close-settings">✖</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">
+        <div class="section-title">⚡ Chave Global Groq IA</div>
+        <div class="input-group">
+          <input type="password" class="input-field" id="global-groq-key" placeholder="Chave gsk_..." title="Chave Global da API Groq" aria-label="Chave Global da API Groq" />
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-title">⏰ Janela Operacional (Scheduler)</div>
+        <div class="scheduler-row">
+          <div>
+            <label class="time-label" for="global-time-start">Início Automático</label>
+            <input type="time" class="time-input" id="global-time-start" title="Horário de início automático" aria-label="Horário de início automático" />
+          </div>
+          <div>
+            <label class="time-label" for="global-time-end">Término Automático</label>
+            <input type="time" class="time-input" id="global-time-end" title="Horário de término automático" aria-label="Horário de término automático" />
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-title">⚡ Velocidade Biométrica Padrão</div>
+        <div class="speed-group" id="global-speed-group">
+          <button class="speed-btn" data-speed="devagar">🐢 Devagar</button>
+          <button class="speed-btn active" data-speed="normal">🚶 Normal</button>
+          <button class="speed-btn" data-speed="rapido">🚀 Rápido</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-title">📌 Janela Flutuante Fixa</div>
+        <div class="setting-row">
+          <span class="setting-label">Abrir sempre em Janela Flutuante (não fecha ao clicar fora)</span>
+          <label class="toggle" for="setting-always-detached">
+            <input type="checkbox" id="setting-always-detached" title="Abrir sempre em Janela Flutuante Fixa" aria-label="Abrir sempre em Janela Flutuante Fixa" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn-save mt-6" id="btn-save-global-settings" type="button">💾 Salvar Configurações Gerais</button>
+    </div>
+  </div>
+</div>
+
+<script src="../lib/selectors.js"></script>
+<script src="../lib/captcha-detector.js"></script>
+<script src="../lib/scheduler.js"></script>
+<script src="../lib/storage.js"></script>
+<script src="../lib/ai-engine.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
